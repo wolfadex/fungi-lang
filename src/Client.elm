@@ -210,7 +210,7 @@ update msg model =
                             editorExprRaw edExpr
 
                         deets :
-                            { updatedExpr : EditorBlock
+                            { updatedBlock : EditorBlock
                             , newExprs : AnyDict String UUID EditorBlock
                             , finalUuidSeeds : UUID.Seeds
                             , cmd : Cmd Msg
@@ -219,7 +219,7 @@ update msg model =
                         deets =
                             case ( parseExpression parseExprUnknown raw, edExpr.expression ) of
                                 ( Err _, _ ) ->
-                                    { updatedExpr = edExpr
+                                    { updatedBlock = edExpr
                                     , newExprs = AnyDict.empty
                                     , finalUuidSeeds = model.uuidSeeds
                                     , cmd = Cmd.none
@@ -231,7 +231,7 @@ update msg model =
                                         ( newRightId, afterRightSeeds ) =
                                             UUID.step model.uuidSeeds
                                     in
-                                    { updatedExpr = { edExpr | expression = EditorExprInt raw i newRightId }
+                                    { updatedBlock = { edExpr | expression = EditorExprInt raw i newRightId }
                                     , newExprs = AnyDict.singleton uuidDict newRightId (newBlock (EditorExprUnknown ""))
                                     , finalUuidSeeds = afterRightSeeds
                                     , cmd = focusElement (UUID.toString newRightId)
@@ -239,7 +239,7 @@ update msg model =
                                     }
 
                                 ( Ok (ParseExprInt i), EditorExprInt _ _ oldRightId ) ->
-                                    { updatedExpr = { edExpr | expression = EditorExprInt raw i oldRightId }
+                                    { updatedBlock = { edExpr | expression = EditorExprInt raw i oldRightId }
                                     , newExprs = AnyDict.empty
                                     , finalUuidSeeds = model.uuidSeeds
                                     , cmd = Cmd.none
@@ -300,7 +300,7 @@ update msg model =
                                                            )
                                                     )
                                     in
-                                    { updatedExpr = { edExpr | expression = EditorExprBinaryOp raw op newLeftId newRightId }
+                                    { updatedBlock = { edExpr | expression = EditorExprBinaryOp raw op newLeftId newRightId }
                                     , newExprs = AnyDict.fromList uuidDict (( newRightId, newBlock (EditorExprUnknown "") ) :: additionalExprChanges)
                                     , finalUuidSeeds = finalUuidSeeds
                                     , cmd = focusElement (UUID.toString newRightId)
@@ -308,7 +308,7 @@ update msg model =
                                     }
 
                                 ( Ok (ParseExprBinaryOp op), EditorExprBinaryOp _ _ oldLeftId oldRightId ) ->
-                                    { updatedExpr = { edExpr | expression = EditorExprBinaryOp raw op oldLeftId oldRightId }
+                                    { updatedBlock = { edExpr | expression = EditorExprBinaryOp raw op oldLeftId oldRightId }
                                     , newExprs = AnyDict.empty
                                     , finalUuidSeeds = model.uuidSeeds
                                     , cmd = Cmd.none
@@ -316,7 +316,7 @@ update msg model =
                                     }
 
                                 ( Ok (ParseExprBinaryOp op), EditorExprInt _ _ oldRightId ) ->
-                                    { updatedExpr = { edExpr | expression = EditorExprBinaryOp raw op (Debug.todo "") oldRightId }
+                                    { updatedBlock = { edExpr | expression = EditorExprBinaryOp raw op (Debug.todo "") oldRightId }
                                     , newExprs = AnyDict.empty
                                     , finalUuidSeeds = model.uuidSeeds
                                     , cmd = Cmd.none
@@ -327,7 +327,7 @@ update msg model =
                         | expressions =
                             AnyDict.union
                                 deets.newExprs
-                                (AnyDict.insert uuidDict exprId deets.updatedExpr model.expressions)
+                                (AnyDict.insert uuidDict exprId deets.updatedBlock model.expressions)
                         , uuidSeeds = deets.finalUuidSeeds
                         , declarations =
                             case deets.idToRepoint of
@@ -525,7 +525,7 @@ viewDeclaration expressions mainId declarations ( id, declaration ) =
 
 
 viewEditorExpression : Expressions -> UUID -> EditorBlock -> Element Msg
-viewEditorExpression expressions id editorExpr =
+viewEditorExpression expressions id block =
     let
         centerView =
             Editor.Theme.text
@@ -538,19 +538,19 @@ viewEditorExpression expressions id editorExpr =
                     }
                     |> below
                 , below <|
-                    if editorExpr.showComments then
-                        viewComments id editorExpr
+                    if block.showComments then
+                        viewComments id block
 
                     else
                         none
                 ]
                 { label = Input.labelHidden "expression"
-                , text = editorExprRaw editorExpr
+                , text = editorExprRaw block
                 , onChange = SetExpressionRaw id
                 , placeholder = Nothing
                 }
     in
-    case editorExpr.expression of
+    case block.expression of
         EditorExprUnknown _ ->
             centerView
 
@@ -571,7 +571,7 @@ viewEditorExpression expressions id editorExpr =
 
 
 viewComments : UUID -> EditorBlock -> Element Msg
-viewComments id editorExpr =
+viewComments id block =
     row
         [ Background.color (rgb 1 1 1)
         , Border.solid
@@ -591,29 +591,29 @@ viewComments id editorExpr =
                 []
                 { label = Input.labelAbove [] (text "New Comment")
                 , onChange = ExpressionComment id
-                , text = editorExpr.newComment
+                , text = block.newComment
                 , placeholder = Nothing
                 }
             , Input.button
                 []
                 { label = text "Add Comment"
                 , onPress =
-                    if String.isEmpty editorExpr.newComment then
+                    if String.isEmpty block.newComment then
                         Nothing
 
                     else
                         Just (AddComment id)
                 }
             ]
-        , editorExpr.comments
+        , block.comments
             |> List.map text
             |> column [ alignTop ]
         ]
 
 
 editorExprRaw : EditorBlock -> String
-editorExprRaw expr =
-    case expr.expression of
+editorExprRaw block =
+    case block.expression of
         EditorExprUnknown raw ->
             raw
 
