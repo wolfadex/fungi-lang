@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <title>Fungi Lang Editor</title>
+  </head>
+  <body>
+    <script src="/elm.js"></script>
+    <script>
+      const randomSeeds = new Uint32Array(4);
+
+      window.crypto.getRandomValues(randomSeeds);
+
+      const app = Elm.Client.init({
+        flags: {
+          seed1: randomSeeds[0],
+          seed2: randomSeeds[1],
+          seed3: randomSeeds[2],
+          seed4: randomSeeds[3],
+        },
+      });
+    </script>
+  </body>
+</html>
